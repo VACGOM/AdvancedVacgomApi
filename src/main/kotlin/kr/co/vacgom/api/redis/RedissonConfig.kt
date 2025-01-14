@@ -42,14 +42,7 @@ class RedissonConfig(
             connectionFactory = redisConnectionFactory
             keySerializer = StringRedisSerializer()
             valueSerializer = serializer
+            setEnableTransactionSupport(true)
         }
     }
-
-//    @Bean
-//    fun objectMapper(): ObjectMapper {
-//        return ObjectMapper().apply {
-//            registerModule(KotlinModule.Builder().build())
-//            registerModule(JavaTimeModule())
-//        }
-//    }
 }

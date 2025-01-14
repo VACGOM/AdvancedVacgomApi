@@ -7,6 +7,7 @@ data class InvitationCode(
     val key: String,
     val userId: UUID,
     val babyIds: List<UUID>,
+    var isExpired: Boolean = false,
     val timeToLive: Long = 86400L,
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
 )

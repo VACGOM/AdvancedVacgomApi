@@ -4,5 +4,6 @@ import kr.co.vacgom.api.invitation.domain.InvitationCode
 
 interface InvitationRepository {
     fun save(invitationCode: InvitationCode, ttl: Long)
-    fun getAndDeleteInvitationCode(code: String): InvitationCode?
+    fun getInvitationCodeAndUpdateExpired(code: String): InvitationCode
+    fun rollBackInvitationCodeExpired(code: String)
 }

@@ -21,6 +21,7 @@ import kr.co.vacgom.api.invitation.exception.InvitationError
 import kr.co.vacgom.api.invitation.repository.InvitationRepository
 import kr.co.vacgom.api.user.domain.User
 import kr.co.vacgom.api.user.domain.enums.UserRole
+import org.slf4j.Logger
 import java.time.LocalDate
 import java.util.*
 
@@ -28,11 +29,13 @@ class InvitationServiceTest : DescribeSpec({
     val invitationRepositoryMock: InvitationRepository = mockk(relaxed = true)
     val babyManagerServiceMock: BabyManagerService = mockk(relaxed = true)
     val babyQueryServiceMock: BabyQueryService = mockk(relaxed = true)
+    val loggerMock: Logger = mockk(relaxed = true)
 
     val sut = InvitationService(
         invitationRepositoryMock,
         babyManagerServiceMock,
         babyQueryServiceMock,
+        logger = loggerMock
     )
 
     describe("초대 코드 생성 테스트") {
@@ -122,7 +125,7 @@ class InvitationServiceTest : DescribeSpec({
 
         context("초대 코드를 정상적으로 조회한다면") {
             it("해당하는 아기 상세 정보를 반환한다.") {
-                every { invitationRepositoryMock.getAndDeleteInvitationCode(invitationCode.key) } returns invitationCode
+                every { invitationRepositoryMock.getInvitationCodeAndUpdateExpired(invitationCode.key) } returns invitationCode
                 every { babyQueryServiceMock.getBabiesById(babies.map { it.id }) } returns babies
 
                 val result = sut.getBabiesByInvitationCode(invitationCode.key)
@@ -140,7 +143,7 @@ class InvitationServiceTest : DescribeSpec({
         context("초대 코드가 존재하지 않는다면") {
             it("${InvitationError.INVITATION_CODE_NOT_FOUND} 예외가 발생한다.") {
                 every {
-                    invitationRepositoryMock.getAndDeleteInvitationCode(invitationCode.key)
+                    invitationRepositoryMock.getInvitationCodeAndUpdateExpired(invitationCode.key)
                 } throws BusinessException(InvitationError.INVITATION_CODE_NOT_FOUND)
 
                 val result = shouldThrow<BusinessException> { sut.getBabiesByInvitationCode(invitationCode.key) }

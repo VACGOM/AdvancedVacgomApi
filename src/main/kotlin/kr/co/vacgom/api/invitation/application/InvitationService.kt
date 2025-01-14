@@ -9,6 +9,7 @@ import kr.co.vacgom.api.invitation.domain.InvitationCode
 import kr.co.vacgom.api.invitation.exception.InvitationError
 import kr.co.vacgom.api.invitation.presentation.dto.InvitationDto
 import kr.co.vacgom.api.invitation.repository.InvitationRepository
+import org.slf4j.Logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
@@ -18,7 +19,9 @@ class InvitationService(
     private val invitationRepository: InvitationRepository,
     private val babyManagerService: BabyManagerService,
     private val babyQueryService: BabyQueryService,
+    private val logger: Logger,
 ) {
+    @Transactional
     fun createInvitationCodeByBabyId(userId: UUID, babyId: UUID): InvitationDto.Response.Create {
         val key = UuidCreator.create().toString()
 
@@ -42,19 +45,29 @@ class InvitationService(
         return InvitationDto.Response.Create(invitationCode = key)
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     fun getBabiesByInvitationCode(code: String): List<BabyDto.Response.Detail> {
-        val invitationCode = invitationRepository.getAndDeleteInvitationCode(code)
-            ?: throw BusinessException(InvitationError.INVITATION_CODE_NOT_FOUND)
+        return runCatching {
+            val invitationCode = invitationRepository.getInvitationCodeAndUpdateExpired(code)
 
-        return babyQueryService.getBabiesById(invitationCode.babyIds).map {
-            BabyDto.Response.Detail(
-                id = it.id,
-                name = it.name,
-                profileImg = it.profileImg,
-                gender = it.gender,
-                birthday = it.birthday,
-            )
-        }
+            babyQueryService.getBabiesById(invitationCode.babyIds).map {
+                BabyDto.Response.Detail(
+                    id = it.id,
+                    name = it.name,
+                    profileImg = it.profileImg,
+                    gender = it.gender,
+                    birthday = it.birthday,
+                )
+            }
+        }.onFailure {
+            if (it is BusinessException) {
+                if (it.errorCode == InvitationError.INVITATION_CODE_NOT_FOUND) {
+                    throw it
+                }
+            }
+
+            invitationRepository.rollBackInvitationCodeExpired(code)
+            logger.warn("Expired Invitation Code roll back to redis")
+        }.getOrThrow()
     }
 }
