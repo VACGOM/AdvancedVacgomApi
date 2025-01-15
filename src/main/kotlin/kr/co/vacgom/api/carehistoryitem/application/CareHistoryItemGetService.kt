@@ -1,5 +1,6 @@
 package kr.co.vacgom.api.carehistoryitem.application
 
+import kr.co.vacgom.api.baby.application.BabyQueryService
 import kr.co.vacgom.api.carehistoryitem.domain.enums.CareHistoryItemType
 import kr.co.vacgom.api.carehistoryitem.presentation.dto.CareHistoryDto
 import kr.co.vacgom.api.carehistoryitem.repository.CareHistoryItemRepository
@@ -11,10 +12,12 @@ import java.util.*
 @Service
 @Transactional(readOnly = true)
 class CareHistoryItemGetService(
-    private val careHistoryItemRepository: CareHistoryItemRepository
+    private val careHistoryItemRepository: CareHistoryItemRepository,
+    private val babyQueryService: BabyQueryService
 ) {
     fun getCareHistoryByExecutionDate(babyId: UUID, executionDate: LocalDate): CareHistoryDto.Response {
-        val careHistory = careHistoryItemRepository.findByBabyIdAndExecutionDate(babyId, executionDate)
+        val findBaby = babyQueryService.getBabyById(babyId)
+        val careHistory = careHistoryItemRepository.findByBabyAndExecutionDate(findBaby, executionDate)
         
         return CareHistoryDto.Response.DailyStat.of(careHistory)
     }
@@ -24,7 +27,8 @@ class CareHistoryItemGetService(
         itemType: CareHistoryItemType,
         executionDate: LocalDate
     ): CareHistoryDto.Response {
-        val careHistoryItems = careHistoryItemRepository.findByBabyIdAndExecutionDateAndItemType(babyId, executionDate, itemType)
+        val findBaby = babyQueryService.getBabyById(babyId)
+        val careHistoryItems = careHistoryItemRepository.findByBabyAndExecutionDateAndItemType(findBaby, executionDate, itemType)
 
         return CareHistoryDto.Response.DailyDetail.of(
             babyId = babyId,
